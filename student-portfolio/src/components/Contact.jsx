@@ -5,7 +5,7 @@ const Contact = () => {
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-   setName(prev => ({
+    setName(prev => ({
       ...prev,
       [name]: value
     }));
@@ -14,7 +14,7 @@ const Contact = () => {
   const handleSubmit = (e) => {
     e.preventDefault();
     alert(`Message sent by ${name.name}`);
-   setName('');
+    setName('');
   }
 
   return (
