@@ -17,6 +17,7 @@ app.get("/", (req, res) => {
     message: "Task Manager API is running",
     endpoints: {
       getAllTasks: "GET    /tasks",
+      getTaskById: "GET    /tasks/:id",
       createTask: "POST   /tasks",
       updateTask: "PUT    /tasks/:id",
       deleteTask: "DELETE /tasks/:id",
@@ -36,6 +37,7 @@ app.listen(PORT, () => {
   console.log(`\n Task Manager API running on http://localhost:${PORT}`);
   console.log(`Endpoints:`);
   console.log(`   GET    http://localhost:${PORT}/tasks`);
+  console.log(`   GET    http://localhost:${PORT}/tasks/:id`);
   console.log(`   POST   http://localhost:${PORT}/tasks`);
   console.log(`   PUT    http://localhost:${PORT}/tasks/:id`);
   console.log(`   DELETE http://localhost:${PORT}/tasks/:id\n`);

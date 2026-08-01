@@ -5,6 +5,14 @@ let tasks = [
 
 let nextId = tasks.length + 1;
 
+const addLinks = (task) => ({
+  ...task,
+  _links: {
+    self: `/tasks/${task.id}`,
+    delete: `/tasks/${task.id}`,
+  },
+});
+
 const createError = (message, statusCode) => {
   const err = new Error(message);
   err.statusCode = statusCode;
@@ -13,10 +21,29 @@ const createError = (message, statusCode) => {
 
 const getAllTasks = (req, res, next) => {
   try {
+    const tasksWithLinks = tasks.map((t) => addLinks(t));
     res.status(200).json({
       success: true,
-      count: tasks.length,
-      data: tasks,
+      count: tasksWithLinks.length,
+      data: tasksWithLinks,
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
+const getTaskById = (req, res, next) => {
+  try {
+    const taskId = parseInt(req.params.id);
+    const task = tasks.find((t) => t.id === taskId);
+
+    if (!task) {
+      return next(createError(`Task with id ${taskId} not found.`, 404));
+    }
+
+    res.status(200).json({
+      success: true,
+      data: addLinks(task),
     });
   } catch (err) {
     next(err);
@@ -39,10 +66,11 @@ const createTask = (req, res, next) => {
 
     tasks.push(newTask);
 
+    res.location(`/tasks/${newTask.id}`);
     res.status(201).json({
       success: true,
       message: "Task created successfully.",
-      data: newTask,
+      data: addLinks(newTask),
     });
   } catch (err) {
     next(err);
@@ -66,7 +94,7 @@ const updateTask = (req, res, next) => {
     res.status(200).json({
       success: true,
       message: "Task updated successfully.",
-      data: tasks[taskIndex],
+      data: addLinks(tasks[taskIndex]),
     });
   } catch (err) {
     next(err);
@@ -87,11 +115,11 @@ const deleteTask = (req, res, next) => {
     res.status(200).json({
       success: true,
       message: "Task deleted successfully.",
-      data: deletedTask,
+      data: addLinks(deletedTask),
     });
   } catch (err) {
     next(err);
   }
 };
 
-module.exports = { getAllTasks, createTask, updateTask, deleteTask };
+module.exports = { getAllTasks, getTaskById, createTask, updateTask, deleteTask };
