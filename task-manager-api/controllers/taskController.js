@@ -1,123 +1,115 @@
-let tasks = [
-  { id: 1, title: "Set up Express server", completed: true },
-  { id: 2, title: "Build REST API endpoints", completed: false },
-];
+const Task = require("../models/Task");
 
-let nextId = tasks.length + 1;
-
-const addLinks = (task) => ({
-  ...task,
-  _links: {
-    self: `/tasks/${task.id}`,
-    delete: `/tasks/${task.id}`,
-  },
-});
-
-const createError = (message, statusCode) => {
-  const err = new Error(message);
-  err.statusCode = statusCode;
-  return err;
+const formatValidationError = (err) => {
+  return Object.values(err.errors).map((e) => ({
+    field: e.path,
+    message: e.message,
+  }));
 };
 
-const getAllTasks = (req, res, next) => {
+const addLinks = (task) => {
+  const obj = task.toObject ? task.toObject() : task;
+  return {
+    ...obj,
+    _links: {
+      self: `/tasks/${obj._id}`,
+      delete: `/tasks/${obj._id}`,
+    },
+  };
+};
+
+const getAllTasks = async (req, res, next) => {
   try {
-    const tasksWithLinks = tasks.map((t) => addLinks(t));
-    res.status(200).json({
-      success: true,
-      count: tasksWithLinks.length,
-      data: tasksWithLinks,
-    });
+    const tasks = await Task.find().sort({ createdAt: -1 });
+    res.status(200).json({ success: true, count: tasks.length, data: tasks.map(addLinks) });
   } catch (err) {
     next(err);
   }
 };
 
-const getTaskById = (req, res, next) => {
+const getTaskById = async (req, res, next) => {
   try {
-    const taskId = parseInt(req.params.id);
-    const task = tasks.find((t) => t.id === taskId);
+    const task = await Task.findById(req.params.id);
+    if (!task) {
+      const err = new Error(`Task with id '${req.params.id}' not found.`);
+      err.statusCode = 404;
+      return next(err);
+    }
+    res.status(200).json({ success: true, data: addLinks(task) });
+  } catch (err) {
+    if (err.name === "CastError") {
+      err.statusCode = 400;
+      err.message = `Invalid task id: '${req.params.id}'.`;
+    }
+    next(err);
+  }
+};
+
+const createTask = async (req, res, next) => {
+  try {
+    const { title, description, completed } = req.body;
+    const task = await Task.create({ title, description, completed });
+    res.location(`/tasks/${task._id}`);
+    res.status(201).json({ success: true, message: "Task created successfully.", data: addLinks(task) });
+  } catch (err) {
+    if (err.name === "ValidationError") {
+      return res.status(400).json({
+        success: false,
+        error: { message: "Validation failed.", details: formatValidationError(err) },
+      });
+    }
+    next(err);
+  }
+};
+
+const updateTask = async (req, res, next) => {
+  try {
+    const { title, description, completed } = req.body;
+    const updates = {};
+    if (title !== undefined) updates.title = title;
+    if (description !== undefined) updates.description = description;
+    if (completed !== undefined) updates.completed = completed;
+
+    const task = await Task.findByIdAndUpdate(req.params.id, updates, {
+      returnDocument: "after",
+      runValidators: true,
+    });
 
     if (!task) {
-      return next(createError(`Task with id ${taskId} not found.`, 404));
+      const err = new Error(`Task with id '${req.params.id}' not found.`);
+      err.statusCode = 404;
+      return next(err);
     }
-
-    res.status(200).json({
-      success: true,
-      data: addLinks(task),
-    });
+    res.status(200).json({ success: true, message: "Task updated successfully.", data: addLinks(task) });
   } catch (err) {
+    if (err.name === "CastError") {
+      err.statusCode = 400;
+      err.message = `Invalid task id: '${req.params.id}'.`;
+    }
+    if (err.name === "ValidationError") {
+      return res.status(400).json({
+        success: false,
+        error: { message: "Validation failed.", details: formatValidationError(err) },
+      });
+    }
     next(err);
   }
 };
 
-const createTask = (req, res, next) => {
+const deleteTask = async (req, res, next) => {
   try {
-    const { title } = req.body;
-
-    if (!title || title.trim() === "") {
-      return next(createError("Task title is required.", 400));
+    const task = await Task.findByIdAndDelete(req.params.id);
+    if (!task) {
+      const err = new Error(`Task with id '${req.params.id}' not found.`);
+      err.statusCode = 404;
+      return next(err);
     }
-
-    const newTask = {
-      id: nextId++,
-      title: title.trim(),
-      completed: false,
-    };
-
-    tasks.push(newTask);
-
-    res.location(`/tasks/${newTask.id}`);
-    res.status(201).json({
-      success: true,
-      message: "Task created successfully.",
-      data: addLinks(newTask),
-    });
+    res.status(200).json({ success: true, message: "Task deleted successfully.", data: addLinks(task) });
   } catch (err) {
-    next(err);
-  }
-};
-
-const updateTask = (req, res, next) => {
-  try {
-    const taskId = parseInt(req.params.id);
-    const taskIndex = tasks.findIndex((t) => t.id === taskId);
-
-    if (taskIndex === -1) {
-      return next(createError(`Task with id ${taskId} not found.`, 404));
+    if (err.name === "CastError") {
+      err.statusCode = 400;
+      err.message = `Invalid task id: '${req.params.id}'.`;
     }
-
-    const { title, completed } = req.body;
-
-    if (title !== undefined) tasks[taskIndex].title = title.trim();
-    if (completed !== undefined) tasks[taskIndex].completed = Boolean(completed);
-
-    res.status(200).json({
-      success: true,
-      message: "Task updated successfully.",
-      data: addLinks(tasks[taskIndex]),
-    });
-  } catch (err) {
-    next(err);
-  }
-};
-
-const deleteTask = (req, res, next) => {
-  try {
-    const taskId = parseInt(req.params.id);
-    const taskIndex = tasks.findIndex((t) => t.id === taskId);
-
-    if (taskIndex === -1) {
-      return next(createError(`Task with id ${taskId} not found.`, 404));
-    }
-
-    const deletedTask = tasks.splice(taskIndex, 1)[0];
-
-    res.status(200).json({
-      success: true,
-      message: "Task deleted successfully.",
-      data: addLinks(deletedTask),
-    });
-  } catch (err) {
     next(err);
   }
 };

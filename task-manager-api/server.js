@@ -1,4 +1,6 @@
+require("dotenv").config();
 const express = require("express");
+const connectDB = require("./config/db");
 const logger = require("./middleware/logger");
 const errorHandler = require("./middleware/errorHandler");
 const taskRoutes = require("./routes/taskRoutes");
@@ -33,12 +35,8 @@ app.use((req, res, next) => {
 
 app.use(errorHandler);
 
-app.listen(PORT, () => {
-  console.log(`\n Task Manager API running on http://localhost:${PORT}`);
-  console.log(`Endpoints:`);
-  console.log(`   GET    http://localhost:${PORT}/tasks`);
-  console.log(`   GET    http://localhost:${PORT}/tasks/:id`);
-  console.log(`   POST   http://localhost:${PORT}/tasks`);
-  console.log(`   PUT    http://localhost:${PORT}/tasks/:id`);
-  console.log(`   DELETE http://localhost:${PORT}/tasks/:id\n`);
+connectDB().then(() => {
+  app.listen(PORT, () => {
+    console.log(`Server running on http://localhost:${PORT}`);
+  });
 });
