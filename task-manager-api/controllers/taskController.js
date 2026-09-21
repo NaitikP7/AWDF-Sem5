@@ -20,7 +20,7 @@ const addLinks = (task) => {
 
 const getAllTasks = async (req, res, next) => {
   try {
-    const tasks = await Task.find().sort({ createdAt: -1 });
+    const tasks = await Task.find({ user: req.user.id }).sort({ createdAt: -1 });
     res.status(200).json({ success: true, count: tasks.length, data: tasks.map(addLinks) });
   } catch (err) {
     next(err);
@@ -29,7 +29,7 @@ const getAllTasks = async (req, res, next) => {
 
 const getTaskById = async (req, res, next) => {
   try {
-    const task = await Task.findById(req.params.id);
+    const task = await Task.findOne({ _id: req.params.id, user: req.user.id });
     if (!task) {
       const err = new Error(`Task with id '${req.params.id}' not found.`);
       err.statusCode = 404;
@@ -48,7 +48,7 @@ const getTaskById = async (req, res, next) => {
 const createTask = async (req, res, next) => {
   try {
     const { title, description, completed } = req.body;
-    const task = await Task.create({ title, description, completed });
+    const task = await Task.create({ title, description, completed, user: req.user.id });
     res.location(`/tasks/${task._id}`);
     res.status(201).json({ success: true, message: "Task created successfully.", data: addLinks(task) });
   } catch (err) {
@@ -70,7 +70,7 @@ const updateTask = async (req, res, next) => {
     if (description !== undefined) updates.description = description;
     if (completed !== undefined) updates.completed = completed;
 
-    const task = await Task.findByIdAndUpdate(req.params.id, updates, {
+    const task = await Task.findOneAndUpdate({ _id: req.params.id, user: req.user.id }, updates, {
       returnDocument: "after",
       runValidators: true,
     });
@@ -98,7 +98,7 @@ const updateTask = async (req, res, next) => {
 
 const deleteTask = async (req, res, next) => {
   try {
-    const task = await Task.findByIdAndDelete(req.params.id);
+    const task = await Task.findOneAndDelete({ _id: req.params.id, user: req.user.id });
     if (!task) {
       const err = new Error(`Task with id '${req.params.id}' not found.`);
       err.statusCode = 404;
