@@ -1,109 +1,227 @@
-import React, { useState, useEffect } from 'react'
-import Spinner from './Spinner'
-import ErrorMessage from './ErrorMessage'
-import RepoList from './RepoList'
+import React, { useState, useEffect } from 'react';
+import Spinner from './Spinner';
+import ErrorMessage from './ErrorMessage';
+import Auth from './Auth';
 
 const Projects = () => {
-  const [inputValue, setInputValue] = useState('')
-  const [username, setUsername] = useState('')
-  const [data, setData] = useState([])
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState(null)
+  const [tasks, setTasks] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+  const [title, setTitle] = useState('');
+  const [description, setDescription] = useState('');
+  const [isAuthenticated, setIsAuthenticated] = useState(!!localStorage.getItem('token'));
+
+  const fetchTasks = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const token = localStorage.getItem('token');
+      const response = await fetch('http://localhost:3000/tasks', {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      if (response.status === 401) {
+        localStorage.removeItem('token');
+        setIsAuthenticated(false);
+        throw new Error('Session expired, please login again.');
+      }
+      if (!response.ok) {
+        throw new Error(`API error: ${response.statusText}`);
+      }
+      const data = await response.json();
+      setTasks(data.data);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    if (!username) return
-
-    const fetchRepos = async () => {
-      try {
-        setLoading(true)
-        setError(null)
-        setData([])
-        const response = await fetch(
-          `https://api.github.com/users/${username}/repos?sort=updated&per_page=12`
-        )
-        if (!response.ok) {
-          throw new Error(`GitHub API error: ${response.status} ${response.statusText}`)
-        }
-        const repos = await response.json()
-        setData(repos)
-      } catch (err) {
-        setError(err.message)
-      } finally {
-        setLoading(false)
-      }
+    if (isAuthenticated) {
+      fetchTasks();
     }
+  }, [isAuthenticated]);
 
-    fetchRepos()
-  }, [username])
+  const handleCreateTask = async (e) => {
+    e.preventDefault();
+    if (!title.trim()) return;
 
-  const handleSubmit = (e) => {
-    e.preventDefault()
-    const trimmed = inputValue.trim()
-    if (!trimmed) return
-    setUsername(trimmed)
+    try {
+      setLoading(true);
+      const token = localStorage.getItem('token');
+      const response = await fetch('http://localhost:3000/tasks', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ title, description })
+      });
+      
+      const data = await response.json();
+      if (!response.ok) {
+         throw new Error(data.error?.message || 'Failed to create task');
+      }
+      
+      setTasks([data.data, ...tasks]);
+      setTitle('');
+      setDescription('');
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleToggleComplete = async (taskId, currentStatus) => {
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(`http://localhost:3000/tasks/${taskId}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ completed: !currentStatus })
+      });
+      
+      if (!response.ok) throw new Error('Failed to update task');
+      const data = await response.json();
+      
+      setTasks(tasks.map(t => t._id === taskId ? data.data : t));
+    } catch (err) {
+      setError(err.message);
+    }
+  };
+
+  const handleDelete = async (taskId) => {
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(`http://localhost:3000/tasks/${taskId}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      
+      if (!response.ok) throw new Error('Failed to delete task');
+      
+      setTasks(tasks.filter(t => t._id !== taskId));
+    } catch (err) {
+      setError(err.message);
+    }
+  };
+
+  const handleLogout = () => {
+    localStorage.removeItem('token');
+    setIsAuthenticated(false);
+    setTasks([]);
+  };
+
+  if (!isAuthenticated) {
+    return <Auth onAuthSuccess={() => setIsAuthenticated(true)} />;
   }
 
   return (
     <div className='flex flex-col items-center p-10 w-full min-h-screen text-white bg-slate-900'>
-      <div className='w-full max-w-6xl'>
-        <div className='mb-10 text-center'>
-          <h2 className='text-4xl font-bold text-cyan-400 mb-2'>GitHub Repositories</h2>
-          <p className='text-slate-400 text-sm mb-8'>Enter a GitHub username to explore their public repositories</p>
+      <div className='w-full max-w-4xl'>
+        <div className='flex justify-between items-center mb-10'>
+          <div>
+            <h2 className='text-4xl font-bold text-cyan-400 mb-2'>Task Management</h2>
+            <p className='text-slate-400 text-sm'>Manage your daily tasks and priorities</p>
+          </div>
+          <button 
+            onClick={handleLogout}
+            className='bg-slate-700 hover:bg-red-500 text-white px-4 py-2 rounded-lg text-sm transition-colors'
+          >
+            Logout
+          </button>
+        </div>
 
-          <form onSubmit={handleSubmit} className='flex items-center gap-3 justify-center'>
-            <div className='relative'>
-              <span className='absolute left-3 top-1/2 -translate-y-1/2 text-slate-400'>
-                <svg className='w-4 h-4' fill='currentColor' viewBox='0 0 24 24'>
-                  <path d='M12 0C5.37 0 0 5.373 0 12c0 5.303 3.438 9.8 8.207 11.387.6.11.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23A11.509 11.509 0 0112 5.803c1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576C20.566 21.797 24 17.3 24 12c0-6.627-5.373-12-12-12z' />
-                </svg>
-              </span>
-              <input
-                type='text'
-                value={inputValue}
-                onChange={(e) => setInputValue(e.target.value)}
-                placeholder='e.g. torvalds'
-                className='pl-9 pr-4 py-2.5 bg-slate-800 border border-slate-700 focus:border-cyan-500 focus:outline-none rounded-lg text-white placeholder-slate-500 text-sm w-64 transition-colors duration-200'
-              />
-            </div>
+        <form onSubmit={handleCreateTask} className='bg-slate-800 p-6 rounded-xl border border-slate-700 mb-8'>
+          <h3 className='text-lg font-semibold mb-4 text-cyan-400'>Create New Task</h3>
+          <div className='flex flex-col gap-4'>
+            <input
+              type='text'
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              placeholder='Task Title'
+              className='px-4 py-2 bg-slate-900 border border-slate-700 focus:border-cyan-500 rounded-lg text-white'
+              required
+            />
+            <textarea
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              placeholder='Task Description (Optional)'
+              className='px-4 py-2 bg-slate-900 border border-slate-700 focus:border-cyan-500 rounded-lg text-white resize-none h-24'
+            />
             <button
               type='submit'
               disabled={loading}
-              className='bg-cyan-500 hover:bg-cyan-600 disabled:opacity-50 disabled:cursor-not-allowed text-white font-semibold px-5 py-2.5 rounded-lg text-sm transition-colors duration-200'
+              className='bg-cyan-500 hover:bg-cyan-600 disabled:opacity-50 text-white font-semibold py-2 rounded-lg transition-colors'
             >
-              {loading ? 'Loading...' : 'Fetch Repos'}
+              Add Task
             </button>
-          </form>
+          </div>
+        </form>
 
-          {username && !loading && !error && (
-            <p className='mt-4 text-slate-500 text-xs'>
-              Showing results for{' '}
-              <a
-                href={`https://github.com/${username}`}
-                target='_blank'
-                rel='noopener noreferrer'
-                className='text-cyan-500 hover:underline'
-              >
-                @{username}
-              </a>
-            </p>
+        {loading && tasks.length === 0 && <Spinner />}
+        {error && <ErrorMessage message={error} />}
+
+        <div className='flex flex-col gap-4'>
+          {tasks.map(task => (
+            <div key={task._id} className={`p-6 rounded-xl border transition-colors ${task.completed ? 'bg-slate-800/50 border-slate-700' : 'bg-slate-800 border-slate-600'}`}>
+              <div className='flex justify-between items-start gap-4'>
+                <div className='flex-grow'>
+                  <h4 className={`text-xl font-bold ${task.completed ? 'text-slate-400 line-through' : 'text-white'}`}>
+                    {task.title}
+                  </h4>
+                  {task.description && (
+                    <p className={`mt-2 text-sm ${task.completed ? 'text-slate-500' : 'text-slate-300'}`}>
+                      {task.description}
+                    </p>
+                  )}
+                  
+                  {/* HATEOAS Links preview */}
+                  {task._links && (
+                    <div className='mt-4 flex gap-2 text-xs text-slate-500'>
+                      <span className='bg-slate-900 px-2 py-1 rounded'>Self: {task._links.self}</span>
+                    </div>
+                  )}
+                </div>
+                
+                <div className='flex gap-2 flex-shrink-0'>
+                  <button
+                    onClick={() => handleToggleComplete(task._id, task.completed)}
+                    className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
+                      task.completed 
+                        ? 'bg-slate-700 hover:bg-slate-600 text-slate-300' 
+                        : 'bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-400 border border-emerald-500/50'
+                    }`}
+                  >
+                    {task.completed ? 'Undo' : 'Complete'}
+                  </button>
+                  <button
+                    onClick={() => handleDelete(task._id)}
+                    className='px-3 py-1.5 bg-red-500/20 hover:bg-red-500/30 text-red-400 border border-red-500/50 rounded-lg text-sm font-medium transition-colors'
+                  >
+                    Delete
+                  </button>
+                </div>
+              </div>
+            </div>
+          ))}
+          {!loading && tasks.length === 0 && !error && (
+            <div className='text-center py-10 text-slate-500'>
+              No tasks found. Create one above!
+            </div>
           )}
         </div>
-
-        {!username && !loading && (
-          <div className='text-center text-slate-600 py-20'>
-            <svg className='w-16 h-16 mx-auto mb-4 opacity-40' fill='currentColor' viewBox='0 0 24 24'>
-              <path d='M12 0C5.37 0 0 5.373 0 12c0 5.303 3.438 9.8 8.207 11.387.6.11.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23A11.509 11.509 0 0112 5.803c1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576C20.566 21.797 24 17.3 24 12c0-6.627-5.373-12-12-12z' />
-            </svg>
-            <p className='text-lg'>Enter a GitHub username above to get started</p>
-          </div>
-        )}
-
-        {loading && <Spinner />}
-        {!loading && error && <ErrorMessage message={error} />}
-        {!loading && !error && data.length > 0 && <RepoList data={data} />}
       </div>
     </div>
-  )
-}
+  );
+};
 
-export default Projects
+export default Projects;
