@@ -1,5 +1,6 @@
 const Task = require("../models/Task");
 const cache = require("../config/cache");
+const taskEvents = require("../events");
 
 const formatValidationError = (err) => {
   return Object.values(err.errors).map((e) => ({
@@ -70,8 +71,12 @@ const createTask = async (req, res, next) => {
     cache.del("all_tasks");
     console.log("[Cache] INVALIDATED - all_tasks key deleted on POST");
 
+    console.log(`[API] Response sent at ${new Date().toISOString()}`);
     res.location(`/tasks/${task._id}`);
     res.status(201).json({ success: true, message: "Task created successfully.", data: addLinks(task) });
+
+    // Emit event asynchronously for background listeners
+    taskEvents.emit("task-created", task);
   } catch (err) {
     if (err.name === "ValidationError") {
       return res.status(400).json({

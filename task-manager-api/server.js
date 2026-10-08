@@ -6,6 +6,7 @@ const logger = require("./middleware/logger");
 const errorHandler = require("./middleware/errorHandler");
 const taskRoutes = require("./routes/taskRoutes");
 const authRoutes = require("./routes/authRoutes");
+require("./listeners");
 
 const app = express();
 const PORT = process.env.PORT || 3000;
