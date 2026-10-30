@@ -51,4 +51,24 @@ describe("Task Management API - CI/CD Automated Tests", () => {
     expect(res.body.success).toBe(true);
     expect(Array.isArray(res.body.data)).toBe(true);
   });
+
+  // Test POST /api/ai/generate-description (Practical 13)
+  test("POST /api/ai/generate-description returns fallback description gracefully when key is unconfigured/offline", async () => {
+    const res = await request(app)
+      .post("/api/ai/generate-description")
+      .send({ title: "Build CI/CD Workflow" });
+    expect(res.statusCode).toBe(200);
+    expect(res.body.success).toBe(true);
+    expect(typeof res.body.description).toBe("string");
+    expect(res.body.description.length).toBeGreaterThan(0);
+    expect(res.body.fallback).toBe(true);
+  });
+
+  test("POST /api/ai/generate-description validates task title", async () => {
+    const res = await request(app)
+      .post("/api/ai/generate-description")
+      .send({});
+    expect(res.statusCode).toBe(400);
+    expect(res.body.success).toBe(false);
+  });
 });

@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import Spinner from './Spinner';
 import ErrorMessage from './ErrorMessage';
 import Auth from './Auth';
+import { API_BASE_URL } from '../config';
 
 const Projects = () => {
   const [tasks, setTasks] = useState([]);
@@ -16,7 +17,7 @@ const Projects = () => {
       setLoading(true);
       setError(null);
       const token = localStorage.getItem('token');
-      const response = await fetch('http://localhost:3000/tasks', {
+      const response = await fetch(`${API_BASE_URL}/tasks`, {
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -44,6 +45,67 @@ const Projects = () => {
     }
   }, [isAuthenticated]);
 
+  const [aiLoading, setAiLoading] = useState(false);
+  const [aiNotice, setAiNotice] = useState(null);
+
+  const handleGenerateAiDescription = async () => {
+    if (!title.trim()) {
+      setError("Please enter a task title first so AI can generate a relevant description.");
+      return;
+    }
+
+    try {
+      setAiLoading(true);
+      setError(null);
+      setAiNotice(null);
+
+      // Attempt configured backend port 5000 first, fallback to 3000 if running via proxy
+      let res;
+      try {
+        res = await fetch('http://localhost:5000/api/ai/generate-description', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ title: title.trim() }),
+        });
+      } catch (networkErr) {
+        // Fallback port attempt
+        res = await fetch('http://localhost:3000/api/ai/generate-description', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ title: title.trim() }),
+        });
+      }
+
+      const data = await res.json();
+
+      if (data.description) {
+        setDescription(data.description);
+        if (data.fallback) {
+          setAiNotice({
+            type: 'fallback',
+            message: data.reason || 'Generated using local smart fallback (API quota or invalid key). You can edit this suggestion.',
+          });
+        } else {
+          setAiNotice({
+            type: 'success',
+            message: `AI description generated successfully via ${data.provider || 'AI'}! You can review or edit it below.`,
+          });
+        }
+      } else {
+        throw new Error(data.error?.message || 'Failed to generate description');
+      }
+    } catch (err) {
+      console.error('[AI Error]', err);
+      // Graceful frontend error handling - does not break the form
+      setAiNotice({
+        type: 'fallback',
+        message: 'Could not contact AI service. You can type the description manually.',
+      });
+    } finally {
+      setAiLoading(false);
+    }
+  };
+
   const handleCreateTask = async (e) => {
     e.preventDefault();
     if (!title.trim()) return;
@@ -51,7 +113,7 @@ const Projects = () => {
     try {
       setLoading(true);
       const token = localStorage.getItem('token');
-      const response = await fetch('http://localhost:3000/tasks', {
+      const response = await fetch(`${API_BASE_URL}/tasks`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -68,6 +130,7 @@ const Projects = () => {
       setTasks([data.data, ...tasks]);
       setTitle('');
       setDescription('');
+      setAiNotice(null);
     } catch (err) {
       setError(err.message);
     } finally {
@@ -78,7 +141,7 @@ const Projects = () => {
   const handleToggleComplete = async (taskId, currentStatus) => {
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`http://localhost:3000/tasks/${taskId}`, {
+      const response = await fetch(`${API_BASE_URL}/tasks/${taskId}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -99,7 +162,7 @@ const Projects = () => {
   const handleDelete = async (taskId) => {
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`http://localhost:3000/tasks/${taskId}`, {
+      const response = await fetch(`${API_BASE_URL}/tasks/${taskId}`, {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${token}`
@@ -143,20 +206,68 @@ const Projects = () => {
         <form onSubmit={handleCreateTask} className='bg-slate-800 p-6 rounded-xl border border-slate-700 mb-8'>
           <h3 className='text-lg font-semibold mb-4 text-cyan-400'>Create New Task</h3>
           <div className='flex flex-col gap-4'>
-            <input
-              type='text'
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              placeholder='Task Title'
-              className='px-4 py-2 bg-slate-900 border border-slate-700 focus:border-cyan-500 rounded-lg text-white'
-              required
-            />
-            <textarea
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              placeholder='Task Description (Optional)'
-              className='px-4 py-2 bg-slate-900 border border-slate-700 focus:border-cyan-500 rounded-lg text-white resize-none h-24'
-            />
+            <div className='flex gap-2 items-center'>
+              <input
+                type='text'
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                placeholder='Task Title (e.g. Design Landing Page)'
+                className='flex-grow px-4 py-2 bg-slate-900 border border-slate-700 focus:border-cyan-500 rounded-lg text-white'
+                required
+              />
+              <button
+                type='button'
+                onClick={handleGenerateAiDescription}
+                disabled={aiLoading || !title.trim()}
+                className='flex items-center gap-2 bg-purple-600 hover:bg-purple-700 disabled:opacity-40 text-white font-medium px-4 py-2 rounded-lg text-sm transition-colors whitespace-nowrap'
+                title='Auto-generate a description using AI based on task title'
+              >
+                {aiLoading ? (
+                  <>
+                    <span className='animate-spin inline-block w-4 h-4 border-2 border-white border-t-transparent rounded-full'></span>
+                    Generating...
+                  </>
+                ) : (
+                  <>
+                    <span>✨</span> Generate Description
+                  </>
+                )}
+              </button>
+            </div>
+
+            {aiNotice && (
+              <div
+                className={`p-3 rounded-lg text-xs flex items-center justify-between border ${
+                  aiNotice.type === 'success'
+                    ? 'bg-purple-950/60 border-purple-500/50 text-purple-200'
+                    : 'bg-amber-950/60 border-amber-500/50 text-amber-200'
+                }`}
+              >
+                <span>{aiNotice.message}</span>
+                <button
+                  type='button'
+                  onClick={() => setAiNotice(null)}
+                  className='text-slate-400 hover:text-white font-bold ml-2'
+                >
+                  ✕
+                </button>
+              </div>
+            )}
+
+            <div className='relative'>
+              <textarea
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                placeholder='Task Description (AI generated or manual suggestion - fully editable)'
+                className='w-full px-4 py-2 bg-slate-900 border border-slate-700 focus:border-cyan-500 rounded-lg text-white resize-none h-24'
+              />
+              {description && (
+                <span className='absolute bottom-2 right-3 text-xs text-slate-500 pointer-events-none'>
+                  Editable suggestion
+                </span>
+              )}
+            </div>
+
             <button
               type='submit'
               disabled={loading}

@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import Spinner from './Spinner';
 import ErrorMessage from './ErrorMessage';
+import { API_BASE_URL } from '../config';
 
 const Auth = ({ onAuthSuccess }) => {
   const [isLogin, setIsLogin] = useState(true);
@@ -17,7 +18,7 @@ const Auth = ({ onAuthSuccess }) => {
     const endpoint = isLogin ? '/auth/login' : '/auth/register';
     
     try {
-      const response = await fetch(`http://localhost:3000${endpoint}`, {
+      const response = await fetch(`${API_BASE_URL}${endpoint}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
