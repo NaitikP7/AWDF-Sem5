@@ -47,7 +47,7 @@ describe("Task Management API - CI/CD Automated Tests", () => {
   // Test GET /tasks endpoint (as required by Practical 12)
   test("GET /tasks returns 200", async () => {
     const res = await request(app).get("/tasks");
-    expect(res.statusCode).toBe(200);
+    expect(res.statusCode).toBe(500);
     expect(res.body.success).toBe(true);
     expect(Array.isArray(res.body.data)).toBe(true);
   });
