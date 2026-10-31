@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
-import Spinner from './Spinner';
-import ErrorMessage from './ErrorMessage';
 import { API_BASE_URL } from '../config';
+import { ArrowRight, Eye, EyeOff, LockKeyhole, Mail, ShieldCheck, Sparkles } from 'lucide-react';
 
 const Auth = ({ onAuthSuccess }) => {
   const [isLogin, setIsLogin] = useState(true);
@@ -9,11 +8,14 @@ const Auth = ({ onAuthSuccess }) => {
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [notice, setNotice] = useState(null);
+  const [showPassword, setShowPassword] = useState(false);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
     setError(null);
+    setNotice(null);
 
     const endpoint = isLogin ? '/auth/login' : '/auth/register';
     
@@ -32,11 +34,9 @@ const Auth = ({ onAuthSuccess }) => {
         throw new Error(data.error?.message || data.message || 'Authentication failed');
       }
 
-      // If registration is successful, usually you don't get a token back in our API, 
-      // but let's assume we can just switch to login.
       if (!isLogin) {
         setIsLogin(true);
-        setError("Registration successful! Please login.");
+        setNotice("Your account is ready. Sign in to continue.");
         setEmail('');
         setPassword('');
       } else {
@@ -51,55 +51,51 @@ const Auth = ({ onAuthSuccess }) => {
   };
 
   return (
-    <div className='flex flex-col items-center justify-center p-10 w-full min-h-screen text-white bg-slate-900'>
-      <div className='w-full max-w-md bg-slate-800 p-8 rounded-xl shadow-lg border border-slate-700'>
-        <h2 className='text-3xl font-bold text-cyan-400 mb-6 text-center'>
-          {isLogin ? 'Login' : 'Register'}
-        </h2>
-        
-        {error && <ErrorMessage message={error} />}
-        
-        <form onSubmit={handleSubmit} className='flex flex-col gap-4 mt-4'>
-          <div>
-            <label className='block text-slate-400 text-sm mb-2'>Email</label>
-            <input
-              type='email'
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              className='w-full px-4 py-2 bg-slate-900 border border-slate-700 focus:border-cyan-500 focus:outline-none rounded-lg text-white'
-              required
-            />
+    <div className='auth-page'>
+      <div className='auth-layout'>
+        <section className='auth-story'>
+          <div className='auth-brand'><span><Sparkles size={17}/></span> TASKSPACE</div>
+          <div className='auth-story-copy'>
+            <span className='section-number'>A CLEARER WAY TO GET THINGS DONE</span>
+            <h1>Make space for<br/><span>what matters.</span></h1>
+            <p>Sign in to organize your tasks, track progress, and keep your next steps close.</p>
           </div>
-          <div>
-            <label className='block text-slate-400 text-sm mb-2'>Password</label>
-            <input
-              type='password'
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              className='w-full px-4 py-2 bg-slate-900 border border-slate-700 focus:border-cyan-500 focus:outline-none rounded-lg text-white'
-              required
-              minLength={6}
-            />
-          </div>
-          
-          <button
-            type='submit'
-            disabled={loading}
-            className='w-full mt-4 bg-cyan-500 hover:bg-cyan-600 disabled:opacity-50 text-white font-semibold px-5 py-2.5 rounded-lg transition-colors'
-          >
-            {loading ? <Spinner /> : (isLogin ? 'Login' : 'Register')}
-          </button>
-        </form>
+          <div className='auth-story-footer'><span className='auth-story-mark'>01</span><span>YOUR PERSONAL WORKSPACE</span><i/></div>
+          <div className='auth-decoration' aria-hidden='true'><span/><span/><span/></div>
+        </section>
 
-        <p className='mt-6 text-center text-slate-400 text-sm'>
-          {isLogin ? "Don't have an account? " : "Already have an account? "}
-          <button 
-            onClick={() => setIsLogin(!isLogin)}
-            className='text-cyan-500 hover:underline'
-          >
-            {isLogin ? 'Register here' : 'Login here'}
-          </button>
-        </p>
+        <section className='auth-card' aria-labelledby='auth-title'>
+          <div className='auth-tabs' role='tablist' aria-label='Account access'>
+            <button type='button' role='tab' aria-selected={isLogin} className={isLogin ? 'active' : ''} onClick={() => { setIsLogin(true); setError(null); setNotice(null); }}>Sign in</button>
+            <button type='button' role='tab' aria-selected={!isLogin} className={!isLogin ? 'active' : ''} onClick={() => { setIsLogin(false); setError(null); setNotice(null); }}>Create account</button>
+          </div>
+
+          <div className='auth-heading'>
+            <span className='auth-heading-icon'><LockKeyhole size={18}/></span>
+            <h2 id='auth-title'>{isLogin ? 'Welcome back' : 'Create your account'}</h2>
+            <p>{isLogin ? 'Enter your details to access your workspace.' : 'A few details and your workspace is ready.'}</p>
+          </div>
+
+          {error && <div className='auth-feedback error' role='alert'>{error}</div>}
+          {notice && <div className='auth-feedback success' role='status'>{notice}</div>}
+
+          <form onSubmit={handleSubmit} className='auth-form'>
+            <div className='auth-field'>
+              <label htmlFor='auth-email'>Email address</label>
+              <div className='auth-input-wrap'><Mail size={17}/><input id='auth-email' type='email' autoComplete='email' value={email} onChange={(e) => setEmail(e.target.value)} placeholder='you@example.com' required /></div>
+            </div>
+            <div className='auth-field'>
+              <div className='auth-label-row'><label htmlFor='auth-password'>Password</label>{!isLogin && <span>At least 6 characters</span>}</div>
+              <div className='auth-input-wrap'><LockKeyhole size={17}/><input id='auth-password' type={showPassword ? 'text' : 'password'} autoComplete={isLogin ? 'current-password' : 'new-password'} value={password} onChange={(e) => setPassword(e.target.value)} placeholder='Enter your password' required minLength={6} /><button type='button' className='password-toggle' aria-label={showPassword ? 'Hide password' : 'Show password'} onClick={() => setShowPassword(!showPassword)}>{showPassword ? <EyeOff size={16}/> : <Eye size={16}/>}</button></div>
+            </div>
+            <button type='submit' disabled={loading} className='auth-submit'>
+              {loading ? <><span className='auth-spinner'/> {isLogin ? 'Signing in…' : 'Creating account…'}</> : <>{isLogin ? 'Sign in to workspace' : 'Create account'} <ArrowRight size={17}/></>}
+            </button>
+          </form>
+
+          <div className='auth-secure-note'><ShieldCheck size={16}/><span>Passwords are protected with a one-way hash.</span></div>
+          <p className='auth-switch'>{isLogin ? "New to Taskspace?" : 'Already have an account?'} <button type='button' onClick={() => { setIsLogin(!isLogin); setError(null); setNotice(null); }}>{isLogin ? 'Create an account' : 'Sign in'}</button></p>
+        </section>
       </div>
     </div>
   );

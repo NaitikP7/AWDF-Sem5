@@ -19,7 +19,7 @@ const Home = () => {
 
   return (
     <div className='flex flex-col items-center w-full'>
-      <Header />
+      <Header name='Naitik Patel' themeColor='#22d3ee' />
       <About />
       <Skills skills={skills} />
     </div>

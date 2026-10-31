@@ -1,7 +1,7 @@
 const express = require("express");
 const router = express.Router();
 const { protect } = require("../middleware/authMiddleware");
-const { validateTask } = require("../middleware/validationMiddleware");
+const { validateTask, validateTaskUpdate } = require("../middleware/validationMiddleware");
 
 const {
   getAllTasks,
@@ -17,7 +17,7 @@ router.route("/")
 
 router.route("/:id")
   .get(protect, getTaskById)
-  .put(protect, validateTask, updateTask)
+  .put(protect, validateTaskUpdate, updateTask)
   .delete(protect, deleteTask);
 
 module.exports = router;

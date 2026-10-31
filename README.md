@@ -25,4 +25,4 @@ docker-compose up --build
 3. **`docker-compose.yml`**: Multi-container orchestration linking all 3 services on an isolated bridge network.
 4. **`hateoas`**: Standalone demonstration server for hypermedia controls.
 
-For full project explanation, syllabus practical mappings (Practicals 1–11), and the live demonstration guide, open **[PROJECT_GUIDE.md](PROJECT_GUIDE.md)**.
+For the project explanation, syllabus mapping and verification notes for Practicals 1–13, and the live demonstration guide, open **[PROJECT_GUIDE.md](PROJECT_GUIDE.md)**.

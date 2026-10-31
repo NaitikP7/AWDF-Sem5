@@ -3,6 +3,7 @@ import Spinner from './Spinner';
 import ErrorMessage from './ErrorMessage';
 import Auth from './Auth';
 import { API_BASE_URL } from '../config';
+import { Check, Circle, ListTodo, LogOut, Plus, Sparkles, Trash2 } from 'lucide-react';
 
 const Projects = () => {
   const [tasks, setTasks] = useState([]);
@@ -11,6 +12,8 @@ const Projects = () => {
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [isAuthenticated, setIsAuthenticated] = useState(!!localStorage.getItem('token'));
+  const [filter, setFilter] = useState('all');
+  const [pendingTaskId, setPendingTaskId] = useState(null);
 
   const fetchTasks = async () => {
     try {
@@ -59,22 +62,11 @@ const Projects = () => {
       setError(null);
       setAiNotice(null);
 
-      // Attempt configured backend port 5000 first, fallback to 3000 if running via proxy
-      let res;
-      try {
-        res = await fetch('http://localhost:5000/api/ai/generate-description', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ title: title.trim() }),
-        });
-      } catch (networkErr) {
-        // Fallback port attempt
-        res = await fetch('http://localhost:3000/api/ai/generate-description', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ title: title.trim() }),
-        });
-      }
+      const res = await fetch(`${API_BASE_URL}/api/ai/generate-description`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ title: title.trim() }),
+      });
 
       const data = await res.json();
 
@@ -140,6 +132,7 @@ const Projects = () => {
 
   const handleToggleComplete = async (taskId, currentStatus) => {
     try {
+      setPendingTaskId(taskId);
       const token = localStorage.getItem('token');
       const response = await fetch(`${API_BASE_URL}/tasks/${taskId}`, {
         method: 'PUT',
@@ -156,11 +149,14 @@ const Projects = () => {
       setTasks(tasks.map(t => t._id === taskId ? data.data : t));
     } catch (err) {
       setError(err.message);
+    } finally {
+      setPendingTaskId(null);
     }
   };
 
   const handleDelete = async (taskId) => {
     try {
+      setPendingTaskId(taskId);
       const token = localStorage.getItem('token');
       const response = await fetch(`${API_BASE_URL}/tasks/${taskId}`, {
         method: 'DELETE',
@@ -174,6 +170,8 @@ const Projects = () => {
       setTasks(tasks.filter(t => t._id !== taskId));
     } catch (err) {
       setError(err.message);
+    } finally {
+      setPendingTaskId(null);
     }
   };
 
@@ -187,24 +185,34 @@ const Projects = () => {
     return <Auth onAuthSuccess={() => setIsAuthenticated(true)} />;
   }
 
+  const completedCount = tasks.filter((task) => task.completed).length;
+  const visibleTasks = tasks.filter((task) => filter === 'all' || (filter === 'completed' ? task.completed : !task.completed));
+
   return (
-    <div className='flex flex-col items-center p-10 w-full min-h-screen text-white bg-slate-900'>
-      <div className='w-full max-w-4xl'>
-        <div className='flex justify-between items-center mb-10'>
+    <div className='task-page'>
+      <div className='task-board'>
+        <div className='task-header'>
           <div>
-            <h2 className='text-4xl font-bold text-cyan-400 mb-2'>Task Management</h2>
-            <p className='text-slate-400 text-sm'>Manage your daily tasks and priorities</p>
+            <span className='section-number'>YOUR WORKSPACE</span>
+            <h2>Task manager<span>.</span></h2>
+            <p>Keep your next steps clear and moving.</p>
           </div>
-          <button 
+          <button
             onClick={handleLogout}
-            className='bg-slate-700 hover:bg-red-500 text-white px-4 py-2 rounded-lg text-sm transition-colors'
+            className='logout-button'
           >
-            Logout
+            <LogOut size={15}/> Sign out
           </button>
         </div>
 
-        <form onSubmit={handleCreateTask} className='bg-slate-800 p-6 rounded-xl border border-slate-700 mb-8'>
-          <h3 className='text-lg font-semibold mb-4 text-cyan-400'>Create New Task</h3>
+        <div className='task-stats'>
+          <div><span>Total tasks</span><strong>{tasks.length}</strong><ListTodo size={18}/></div>
+          <div><span>Completed</span><strong>{completedCount}</strong><Check size={18}/></div>
+          <div><span>In progress</span><strong>{tasks.length - completedCount}</strong><Circle size={17}/></div>
+        </div>
+
+        <form onSubmit={handleCreateTask} className='task-form'>
+          <h3><span className='form-title-icon'><Plus size={17}/></span> Create a task</h3>
           <div className='flex flex-col gap-4'>
             <div className='flex gap-2 items-center'>
               <input
@@ -212,14 +220,14 @@ const Projects = () => {
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
                 placeholder='Task Title (e.g. Design Landing Page)'
-                className='flex-grow px-4 py-2 bg-slate-900 border border-slate-700 focus:border-cyan-500 rounded-lg text-white'
+                className='form-input mt-0'
                 required
               />
               <button
                 type='button'
                 onClick={handleGenerateAiDescription}
                 disabled={aiLoading || !title.trim()}
-                className='flex items-center gap-2 bg-purple-600 hover:bg-purple-700 disabled:opacity-40 text-white font-medium px-4 py-2 rounded-lg text-sm transition-colors whitespace-nowrap'
+                className='ai-button'
                 title='Auto-generate a description using AI based on task title'
               >
                 {aiLoading ? (
@@ -229,7 +237,7 @@ const Projects = () => {
                   </>
                 ) : (
                   <>
-                    <span>✨</span> Generate Description
+                    <Sparkles size={15}/> Generate with AI
                   </>
                 )}
               </button>
@@ -271,9 +279,9 @@ const Projects = () => {
             <button
               type='submit'
               disabled={loading}
-              className='bg-cyan-500 hover:bg-cyan-600 disabled:opacity-50 text-white font-semibold py-2 rounded-lg transition-colors'
+              className='button-primary justify-center'
             >
-              Add Task
+              <Plus size={16}/> Add task
             </button>
           </div>
         </form>
@@ -281,52 +289,57 @@ const Projects = () => {
         {loading && tasks.length === 0 && <Spinner />}
         {error && <ErrorMessage message={error} />}
 
-        <div className='flex flex-col gap-4'>
-          {tasks.map(task => (
-            <div key={task._id} className={`p-6 rounded-xl border transition-colors ${task.completed ? 'bg-slate-800/50 border-slate-700' : 'bg-slate-800 border-slate-600'}`}>
+        <div className='task-list-heading'><div><h3>Your tasks</h3><p>Organize one step at a time.</p></div><div className='task-filters' role='group' aria-label='Filter tasks'>{['all','active','completed'].map((option) => <button key={option} type='button' className={filter === option ? 'selected' : ''} onClick={() => setFilter(option)}>{option[0].toUpperCase()+option.slice(1)}</button>)}</div></div>
+        <div className='task-list'>
+          {visibleTasks.map(task => (
+            <div key={task._id} className={`task-card ${task.completed ? 'is-complete' : ''}`}>
               <div className='flex justify-between items-start gap-4'>
                 <div className='flex-grow'>
-                  <h4 className={`text-xl font-bold ${task.completed ? 'text-slate-400 line-through' : 'text-white'}`}>
+                  <h4 className={task.completed ? 'line-through' : ''}>
                     {task.title}
                   </h4>
                   {task.description && (
-                    <p className={`mt-2 text-sm ${task.completed ? 'text-slate-500' : 'text-slate-300'}`}>
+                    <p>
                       {task.description}
                     </p>
                   )}
                   
                   {/* HATEOAS Links preview */}
                   {task._links && (
-                    <div className='mt-4 flex gap-2 text-xs text-slate-500'>
-                      <span className='bg-slate-900 px-2 py-1 rounded'>Self: {task._links.self}</span>
+                    <div className='task-resource-link'>
+                      <span>API resource</span><code>{task._links.self}</code>
                     </div>
                   )}
                 </div>
                 
                 <div className='flex gap-2 flex-shrink-0'>
                   <button
+                    disabled={pendingTaskId === task._id}
                     onClick={() => handleToggleComplete(task._id, task.completed)}
-                    className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
+                    className={`task-action disabled:opacity-50 ${
                       task.completed 
                         ? 'bg-slate-700 hover:bg-slate-600 text-slate-300' 
                         : 'bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-400 border border-emerald-500/50'
                     }`}
                   >
-                    {task.completed ? 'Undo' : 'Complete'}
+                    {pendingTaskId === task._id ? 'Saving…' : task.completed ? 'Undo' : 'Complete'}
                   </button>
                   <button
+                    disabled={pendingTaskId === task._id}
                     onClick={() => handleDelete(task._id)}
-                    className='px-3 py-1.5 bg-red-500/20 hover:bg-red-500/30 text-red-400 border border-red-500/50 rounded-lg text-sm font-medium transition-colors'
+                    className='task-action delete-action'
                   >
-                    Delete
+                    <Trash2 size={14}/> {pendingTaskId === task._id ? 'Removing…' : 'Delete'}
                   </button>
                 </div>
               </div>
             </div>
           ))}
-          {!loading && tasks.length === 0 && !error && (
-            <div className='text-center py-10 text-slate-500'>
-              No tasks found. Create one above!
+          {!loading && visibleTasks.length === 0 && !error && (
+            <div className='task-empty'>
+              <span className='empty-icon'><ListTodo size={22}/></span>
+              <strong>{tasks.length === 0 ? 'Your task list is clear.' : 'No tasks in this view.'}</strong>
+              <p>{tasks.length === 0 ? 'Add a task above to get started.' : 'Try another filter to see more tasks.'}</p>
             </div>
           )}
         </div>

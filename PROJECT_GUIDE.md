@@ -57,19 +57,25 @@ This project is an end-to-end full-stack web application developed as part of th
 
 ---
 
-## 📚 4. Course Practicals Mapping (What Has Been Done)
+## 📚 4. Course Practicals Mapping and Verification
 
-| Practical | Topic Covered | Implementation in Project |
+| Practical | Current implementation | Review |
 |---|---|---|
-| **Practical 1 - 3** | React UI, Components & Routing | `student-portfolio`: Navigation, Lazy-loaded routes, Tailwind styling, reusable UI components. |
-| **Practical 4** | Express REST API Basics | `task-manager-api`: Modular routing, MVC architecture, custom logger and error handler middleware. |
-| **Assignment** | Richardson Maturity Model (RMM) | `task-manager-api/MATURITY.md`: Formal evaluation achieving RMM Level 3. |
-| **Practical 5** | MongoDB & Mongoose Integration | `config/db.js` & `models/Task.js`: MongoDB connection, Schema design, CRUD operations with MongoDB. |
-| **Practical 6** | HATEOAS (Hypermedia) | `controllers/taskController.js` & `hateoas/server.js`: Hypermedia `_links` embedded in API responses. |
-| **Practical 7 - 8** | Authentication & Authorization | `models/User.js`, `routes/authRoutes.js`, JWT Bearer token middleware, and React frontend Auth integration. |
-| **Practical 9** | Performance & Caching | `config/cache.js`: `node-cache` implementation, `X-Cache: HIT / MISS` response headers. |
-| **Practical 10** | Event-Driven Architecture | `events.js` & `listeners.js`: EventEmitter firing `task-created` and logging background notifications. |
-| **Practical 11** | Docker Containerization | `Dockerfile` (frontend & backend) and `docker-compose.yml` orchestrating the entire stack. |
+| **1 - React components and props** | Portfolio is composed from reusable Header, About, Skills, Footer, and navigation components. Header receives name/theme props; Skills receives the skill list. | Implemented |
+| **2 - State and routing** | Home, Projects, Contact, and fallback 404 routes. Contact has controlled fields, live preview, character count, and a help visibility toggle. | Implemented |
+| **3 - Public API and data rendering** | The original GitHub repository list component remains, but the final Projects route now displays task data from the app's own API as required by Practical 6. | Superseded by Practical 6 in the final app |
+| **4 - Express REST API** | Task CRUD routes, request logger, structured error handler, and HTTP status handling. | Implemented |
+| **5 - MongoDB and Mongoose** | MongoDB connection and Mongoose Task/User models; task operations use persistent storage. | Implemented |
+| **6 - React task API integration** | Authenticated task create/read/update/delete, loading and error feedback, and task persistence. Partial updates support completion toggles. | Implemented |
+| **7 - Authentication and validation** | bcrypt password hashing, one-hour JWTs, protected task routes, and server-side task validation. | Implemented |
+| **8 - Lazy loading** | Projects and Contact are lazy-loaded with a visible Suspense fallback. | Code implemented; before/after bundle and load measurements are not recorded in this workspace |
+| **9 - Caching** | 60-second node-cache for task lists, HIT/MISS headers, and mutation invalidation. Cache keys are isolated per user. | Code implemented; cached/uncached timing samples are not recorded in this workspace |
+| **10 - Event-driven processing** | `task-created` EventEmitter listener logs a delayed notification with task and user information after the API response is sent. | Implemented |
+| **11 - Docker Compose** | Frontend, backend, and MongoDB services, bridge network, and persistent MongoDB volume are configured. | Configuration implemented; successful Docker run is not evidenced here |
+| **12 - GitHub Actions CI** | Workflow installs backend dependencies and runs Jest/Supertest API tests on pushes to `main`. | Workflow and tests present; failed-then-fixed run evidence is not recorded here |
+| **13 - AI API integration** | Backend-only OpenAI/Gemini keys, editable task description suggestion, loading feedback, and local fallback behavior. | Implemented |
+
+The repository contains the code for all 13 practical topics, with Practical 3's repository view intentionally replaced by the task API in Practical 6. The remaining submission evidence is the Practical 8/9 measurements and run records for Practicals 11/12; do not report those measurements or demonstrations until they have been captured.
 
 ---
 

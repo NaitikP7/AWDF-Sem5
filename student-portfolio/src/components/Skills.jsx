@@ -1,20 +1,13 @@
 import React from 'react'
 
-const skills = (props) => {
+const Skills = ({ skills = [] }) => {
   return (
-    <div className='bg-indigo-200 w-[35%] h-auto flex flex-col p-7 rounded-2xl'>
-        <div className='flex justify-center'>
-            <p className='text-3xl font-bold text-white mb-7' >Skills</p>
-        </div>
-        <div className='flex justify-center text-blue-900' >
-            <ul className="columns-3 md:gap-20">
-            {props.skills.map((elem, index)=>{
-                return <li key={index}>{elem}</li>
-            })}
-            </ul>
-        </div>
-    </div>
+    <section className='skills-section'>
+      <span className='section-number'>02 / TOOLKIT</span>
+      <h2>Tools I work with</h2>
+      <ul className='skill-list'>{skills.map((skill) => <li key={skill}>{skill}</li>)}</ul>
+    </section>
   )
 }
 
-export default skills
+export default Skills

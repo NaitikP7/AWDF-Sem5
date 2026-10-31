@@ -1,27 +1,26 @@
 import React, { useState } from 'react'
+import { Send, MessageCircle } from 'lucide-react'
 
 const Contact = () => {
   const [name, setName] = useState('')
+  const [message, setMessage] = useState('')
+  const [showTip, setShowTip] = useState(false)
 
   const handleChange = (e) => {
-    const { name, value } = e.target;
-    setName(prev => ({
-      ...prev,
-      [name]: value
-    }));
+    setName(e.target.value)
   }
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    alert(`Message sent by ${name.name}`);
+    alert(`Thanks, ${name}! Your message is ready to send.`)
     setName('');
+    setMessage('')
   }
 
   return (
-    <div className='flex flex-col items-center justify-center p-10 w-full min-h-screen bg-slate-900 text-white'>
-      <h2 className='text-4xl font-bold mb-8 text-cyan-400'>Contact Me</h2>
-      
-      <div className='w-full max-w-md bg-slate-800 p-8 rounded-xl shadow-2xl border border-slate-700'>
+    <section className='contact-page'>
+      <div className='contact-intro'><span className='section-number'>03 / CONTACT</span><h2>Have a good idea?<br/><span>Let’s make it real.</span></h2><p>Have a question, opportunity, or just want to say hello? Send a note through the form.</p></div>
+      <div className='contact-card'>
         <form onSubmit={handleSubmit} className='flex flex-col gap-5'>
           
           <div className='flex flex-col'>
@@ -30,28 +29,35 @@ const Contact = () => {
               type="text" 
               id="name"
               name="name"
-              value={name.name}
+              value={name}
               onChange={handleChange}
-              className='p-3 rounded bg-slate-700 border border-slate-600 focus:outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 text-white transition-all'
+              className='form-input'
               placeholder='Enter your name'
               required
             />
           </div>
 
+          <div className='flex flex-col'>
+            <label htmlFor='message' className='mb-2 text-sm font-medium text-gray-300'>Message</label>
+            <textarea id='message' value={message} onChange={(e) => setMessage(e.target.value)} maxLength={500} rows={4} className='form-input resize-y' placeholder='Tell me a little about it...' required />
+            <div className='mt-2 flex justify-between text-xs text-slate-500'><button type='button' onClick={() => setShowTip(!showTip)} className='text-cyan-300 hover:text-cyan-200'> {showTip ? 'Hide' : 'Need a prompt?'} </button><span>{message.length}/500</span></div>
+            {showTip && <p className='text-xs text-slate-400'>A few details about your idea, timeline, or question are a great place to start.</p>}
+          </div>
+
           <button 
             type="submit"
-            className='mt-2 bg-blue-500 text-white font-bold py-3 px-4 rounded-lg shadow-lg transform transition-transform hover:-translate-y-1'
+            className='button-primary mt-1 w-full justify-center'
           >
-            Send Message
+            Send message <Send size={16}/>
           </button>
         </form>
 
-        <div className='mt-8 p-4 bg-slate-700 rounded-lg border border-slate-600'>
-          <h3 className='text-lg font-semibold text-cyan-300 mb-2'>Live Preview:</h3>
-          <p className='text-gray-300'><span className='font-medium text-gray-400'>Name:</span> {name.name || '...'}</p>
+        <div className='message-preview'>
+          <h3><MessageCircle size={16}/> Live preview</h3>
+          <p><strong>{name || 'Your name'}</strong></p><p>{message || 'Your message will appear here as you write.'}</p>
         </div>
       </div>
-    </div>
+    </section>
   )
 }
 

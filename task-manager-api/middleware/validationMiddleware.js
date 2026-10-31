@@ -8,4 +8,21 @@ const validateTask = (req, res, next) => {
   next();
 };
 
-module.exports = { validateTask };
+const validateTaskUpdate = (req, res, next) => {
+  const allowedFields = ["title", "description", "completed"];
+  const hasUpdate = allowedFields.some((field) => Object.prototype.hasOwnProperty.call(req.body, field));
+  if (!hasUpdate) {
+    const err = new Error("At least one task field must be provided");
+    err.statusCode = 400;
+    return next(err);
+  }
+  if (Object.prototype.hasOwnProperty.call(req.body, "title") &&
+      (typeof req.body.title !== "string" || req.body.title.trim() === "")) {
+    const err = new Error("Task title cannot be empty");
+    err.statusCode = 400;
+    return next(err);
+  }
+  next();
+};
+
+module.exports = { validateTask, validateTaskUpdate };

@@ -2,6 +2,8 @@ const Task = require("../models/Task");
 const cache = require("../config/cache");
 const taskEvents = require("../events");
 
+const taskCacheKey = (userId) => `all_tasks_${userId}`;
+
 const formatValidationError = (err) => {
   return Object.values(err.errors).map((e) => ({
     field: e.path,
@@ -23,7 +25,8 @@ const addLinks = (task) => {
 const getAllTasks = async (req, res, next) => {
   try {
     // 1. Check cache first
-    const cached = cache.get("all_tasks");
+    const cacheKey = taskCacheKey(req.user.id);
+    const cached = cache.get(cacheKey);
     if (cached) {
       console.log("[Cache] HIT - Returning cached tasks");
       res.setHeader("X-Cache", "HIT");
@@ -36,7 +39,7 @@ const getAllTasks = async (req, res, next) => {
     const responseData = { success: true, count: tasks.length, data: tasks.map(addLinks) };
 
     // 3. Store in cache
-    cache.set("all_tasks", responseData);
+    cache.set(cacheKey, responseData);
     res.setHeader("X-Cache", "MISS");
     res.status(200).json(responseData);
   } catch (err) {
@@ -68,8 +71,8 @@ const createTask = async (req, res, next) => {
     const task = await Task.create({ title, description, completed, user: req.user.id });
 
     // Invalidate cache on write
-    cache.del("all_tasks");
-    console.log("[Cache] INVALIDATED - all_tasks key deleted on POST");
+    cache.del(taskCacheKey(req.user.id));
+    console.log("[Cache] INVALIDATED - current user's task list deleted on POST");
 
     console.log(`[API] Response sent at ${new Date().toISOString()}`);
     res.location(`/tasks/${task._id}`);
@@ -108,8 +111,8 @@ const updateTask = async (req, res, next) => {
     }
 
     // Invalidate cache on write
-    cache.del("all_tasks");
-    console.log("[Cache] INVALIDATED - all_tasks key deleted on PUT");
+    cache.del(taskCacheKey(req.user.id));
+    console.log("[Cache] INVALIDATED - current user's task list deleted on PUT");
 
     res.status(200).json({ success: true, message: "Task updated successfully.", data: addLinks(task) });
   } catch (err) {
@@ -137,8 +140,8 @@ const deleteTask = async (req, res, next) => {
     }
 
     // Invalidate cache on write
-    cache.del("all_tasks");
-    console.log("[Cache] INVALIDATED - all_tasks key deleted on DELETE");
+    cache.del(taskCacheKey(req.user.id));
+    console.log("[Cache] INVALIDATED - current user's task list deleted on DELETE");
 
     res.status(200).json({ success: true, message: "Task deleted successfully.", data: addLinks(task) });
   } catch (err) {
