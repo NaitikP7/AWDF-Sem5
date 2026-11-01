@@ -73,7 +73,7 @@ This project is an end-to-end full-stack web application developed as part of th
 | **10 - Event-driven processing** | `task-created` EventEmitter listener logs a delayed notification with task and user information after the API response is sent. | Implemented |
 | **11 - Docker Compose** | Frontend, backend, and MongoDB services, bridge network, and persistent MongoDB volume are configured. | Configuration implemented; successful Docker run is not evidenced here |
 | **12 - GitHub Actions CI** | Workflow installs backend dependencies and runs Jest/Supertest API tests on pushes to `main`. | Workflow and tests present; failed-then-fixed run evidence is not recorded here |
-| **13 - AI API integration** | Backend-only OpenAI/Gemini keys, editable task description suggestion, loading feedback, and local fallback behavior. | Implemented |
+| **13 - AI API integration** | Backend-only Gemini API key, editable task description suggestion, loading feedback, and local fallback behavior. | Implemented; add your key as `GEMINI_API_KEY` in `task-manager-api/.env` |
 
 The repository contains the code for all 13 practical topics, with Practical 3's repository view intentionally replaced by the task API in Practical 6. The remaining submission evidence is the Practical 8/9 measurements and run records for Practicals 11/12; do not report those measurements or demonstrations until they have been captured.
 

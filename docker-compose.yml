@@ -16,6 +16,9 @@ services:
       dockerfile: Dockerfile
     container_name: backend
     restart: always
+    env_file:
+      - path: ./task-manager-api/.env
+        required: false
     ports:
       - "5001:5000"
     environment:

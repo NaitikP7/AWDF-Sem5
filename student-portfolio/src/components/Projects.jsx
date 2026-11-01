@@ -75,7 +75,7 @@ const Projects = () => {
         if (data.fallback) {
           setAiNotice({
             type: 'fallback',
-            message: data.reason || 'Generated using local smart fallback (API quota or invalid key). You can edit this suggestion.',
+            message: data.reason || 'Gemini could not generate a suggestion. You can edit this built-in fallback.',
           });
         } else {
           setAiNotice({
